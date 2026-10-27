@@ -27,9 +27,11 @@ py -3 -m venv .venv
 - **Lines:** double line = marriage, single line = partnership, dashed grey = divorced/separated,
   dotted grey = two parents without a recorded relationship.
 
-Dates are free text: `1923`, `12.03.1923`, `ca. 1880`, `before 1900`, `?` … The year is extracted for
-sorting and for the lifespan on the cards. A person counts as deceased once a death date or place is
-filled in (use `?` for an unknown date of death).
+Dates are picked, not typed: choose *exact / about / before / after*, then day, month and year from
+drop-downs (day and month are optional, so `1923` or `ca. 03.1880` work), or click 📅 for a calendar.
+They are stored as text such as `12.03.1923`, `03.1923`, `ca. 1880`, `before 1900`; older free-text
+dates are kept unchanged until you edit them. Tick *Deceased* for persons who have died – the date of
+death may stay empty if it is unknown (stored as `?`).
 
 ## Data file
 

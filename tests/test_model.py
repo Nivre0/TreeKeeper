@@ -31,6 +31,68 @@ class DatesTest(unittest.TestCase):
         self.assertEqual(dates.lifespan("ca. 1880", "?", True), "c. 1880–?")
         self.assertEqual(dates.lifespan("", "", False), "")
 
+    def test_parse_date(self):
+        self.assertEqual(dates.parse_date("12.03.1923"), ("", 12, 3, 1923))
+        self.assertEqual(dates.parse_date("1923-03-12"), ("", 12, 3, 1923))
+        self.assertEqual(dates.parse_date("03.1923"), ("", None, 3, 1923))
+        self.assertEqual(dates.parse_date("about 1961"), ("c.", None, None, 1961))
+        self.assertEqual(dates.parse_date("before 1900"), ("bef.", None, None, 1900))
+        self.assertEqual(dates.parse_date(""), ("", None, None, None))
+        self.assertIsNone(dates.parse_date("spring 1923"))
+        self.assertIsNone(dates.parse_date("31.02.1923"))
+
+    def test_format_date_roundtrip(self):
+        for parts in (("", 12, 3, 1923), ("c.", None, 3, 1880), ("aft.", None, None, 1900)):
+            self.assertEqual(dates.parse_date(dates.format_date(*parts)), parts)
+        self.assertEqual(dates.format_date("c.", None, None, 1880), "ca. 1880")
+        self.assertEqual(dates.format_date("", None, None, None), "")
+
+    def test_date_error(self):
+        self.assertIsNone(dates.date_error(29, 2, 1924))
+        self.assertIsNotNone(dates.date_error(29, 2, 1923))
+        self.assertIsNotNone(dates.date_error(5, None, 1923))
+        self.assertIsNotNone(dates.date_error(None, 4, None))
+
+
+class DateEditTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication
+        cls.app = QApplication.instance() or QApplication([])
+
+    def make(self, text):
+        from treekeeper.date_edit import DateEdit
+        edit = DateEdit()
+        edit.set_text(text)
+        return edit
+
+    def test_roundtrip_and_edit(self):
+        edit = self.make("ca. 03.1880")
+        self.assertEqual(edit.text(), "ca. 03.1880")
+        edit.day.setCurrentIndex(15)
+        edit.qualifier.setCurrentIndex(0)
+        self.assertEqual(edit.text(), "15.03.1880")
+
+    def test_legacy_text_kept_until_changed(self):
+        edit = self.make("spring 1923")
+        self.assertEqual(edit.text(), "spring 1923")
+        self.assertEqual(edit.year.value(), 1923)
+        edit.month.setCurrentIndex(4)
+        self.assertEqual(edit.text(), "04.1923")
+
+    def test_calendar_pick_and_errors(self):
+        from PySide6.QtCore import QDate
+        edit = self.make("")
+        self.assertEqual(edit.text(), "")
+        edit._pick_from_calendar(QDate(1950, 7, 4))
+        self.assertEqual(edit.text(), "04.07.1950")
+        edit.month.setCurrentIndex(0)
+        self.assertIsNotNone(edit.error())
+        edit.year.setValue(0)
+        edit.year.stepBy(1)
+        self.assertEqual(edit.year.value(), 1900)
+
 
 class ModelTest(unittest.TestCase):
     def setUp(self):
