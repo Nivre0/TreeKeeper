@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.view.personClicked.connect(self.set_focus)
         self.view.personActivated.connect(self.edit_person)
         self.view.addParentRequested.connect(lambda role: self.add_parent(self.focus_id, role))
+        self.view.addChildRequested.connect(lambda: self.add_child(self.focus_id, focus_child=False))
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(["Ancestors && descendants", "Whole family"])
         self.mode_combo.currentIndexChanged.connect(lambda: self.refresh_tree(recenter=True))
@@ -189,6 +190,18 @@ class MainWindow(QMainWindow):
             action.setStatusTip(tip)
         return action
 
+    def _toggle(self, text, key):
+        """Checkable action stored in the settings under key; redraws the tree when changed."""
+        action = QAction(text, self)
+        action.setCheckable(True)
+        action.setChecked(self.settings.value(key, True, type=bool))
+
+        def changed(checked):
+            self.settings.setValue(key, checked)
+            self.refresh_tree()
+        action.toggled.connect(changed)
+        return action
+
     def _build_actions(self):
         file_menu = self.menuBar().addMenu("&File")
         file_menu.addAction(self._action("&New", self.file_new, QKeySequence.New))
@@ -213,6 +226,12 @@ class MainWindow(QMainWindow):
         for action in (self.act_new, self.act_edit, None, self.act_child, self.act_parent, self.act_partner,
                        None, self.act_delete):
             person_menu.addSeparator() if action is None else person_menu.addAction(action)
+
+        view_menu = self.menuBar().addMenu("&View")
+        self.act_parent_boxes = self._toggle("Show “Add father/mother” boxes", "show_parent_boxes")
+        self.act_child_boxes = self._toggle("Show “Add child” box", "show_child_boxes")
+        view_menu.addAction(self.act_parent_boxes)
+        view_menu.addAction(self.act_child_boxes)
 
         toolbar = QToolBar("Quick actions")
         toolbar.setMovable(False)
@@ -387,10 +406,11 @@ class MainWindow(QMainWindow):
                                      else "Empty file – use “New person” or File › Open sample data.")
             self.engine_label.clear()
             return
+        boxes = {"parent_boxes": self.act_parent_boxes.isChecked(), "child_box": self.act_child_boxes.isChecked()}
         if self.mode_combo.currentIndex() == MODE_DIRECT:
-            result = lay.layout_direct(self.tree, self.focus_id)
+            result = lay.layout_direct(self.tree, self.focus_id, **boxes)
         else:
-            result = lay.layout_all(self.tree, self.focus_id)
+            result = lay.layout_all(self.tree, self.focus_id, **boxes)
         self.view.show_layout(self.tree, result, self.focus_id, recenter=recenter)
         self.focus_label.setText(f"Focus: <b>{self.tree.get(self.focus_id).full_name}</b>")
         self.engine_label.setText(f"{len(result.positions)} shown · layout: {result.engine}")
@@ -436,7 +456,8 @@ class MainWindow(QMainWindow):
         if person:
             self._commit(lambda: self.tree.update_person(person), focus=pid)
 
-    def add_child(self, pid):
+    def add_child(self, pid, focus_child=True):
+        """Create a new child of pid; focus_child=False keeps pid in focus (used by the tree's box)."""
         parent = self.tree.get(pid)
         if not parent:
             return
@@ -447,7 +468,7 @@ class MainWindow(QMainWindow):
             child.parents.append(partners[0].id)  # likely other parent; can be changed in the dialog
         person = self._run_dialog(child, f"Add child of {parent.full_name}")
         if person:
-            self._commit(lambda: self.tree.add_person(person), focus=person.id)
+            self._commit(lambda: self.tree.add_person(person), focus=person.id if focus_child else pid)
 
     def add_parent(self, pid, role=None):
         """Create a new person and make them a parent of pid. role: None, "father" or "mother"."""

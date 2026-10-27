@@ -130,8 +130,8 @@ class PlaceholderTest(GuiTestCase):
             for bx, by in cards[i + 1:]:
                 self.assertFalse(abs(ax - bx) < layout.CARD_W and abs(ay - by) < layout.CARD_H, "overlap")
         fy = result.positions[focus_id][1]
-        for x, y in result.placeholders.values():
-            self.assertEqual(y, fy - layout.ROW_H)
+        for role, (x, y) in result.placeholders.items():
+            self.assertEqual(y, fy + layout.ROW_H if role == "child" else fy - layout.ROW_H)
 
     def test_placeholders_only_for_missing_parents(self):
         for mode in (layout.layout_direct, lambda t, f: layout.layout_all(t, f, use_graphviz=False),
@@ -203,6 +203,75 @@ class PlaceholderTest(GuiTestCase):
         self.assertEqual(set(window.view.cards) >= {new.id}, True)
         window.tree.dirty = False
         window.close()
+
+
+    def test_child_box_after_children(self):
+        modes = (layout.layout_direct, lambda t, f, **kw: layout.layout_all(t, f, use_graphviz=False, **kw),
+                 layout.layout_all)
+        for mode in modes:
+            walter, lukas = by_name(self.tree, "Walter"), by_name(self.tree, "Lukas")
+            self.assertNotIn("child", mode(self.tree, walter.id).placeholders)       # off by default
+            result = mode(self.tree, walter.id, child_box=True)
+            kids = [result.positions[c.id][0] for c in self.tree.children_of(walter.id)]
+            self.assertGreater(result.placeholders["child"][0], max(kids))
+            self.check(result, walter.id)
+            result = mode(self.tree, lukas.id, parent_boxes=False, child_box=True)   # no children yet
+            self.assertEqual(set(result.placeholders), {"child"})
+            self.assertAlmostEqual(result.placeholders["child"][0], result.positions[lukas.id][0])
+            self.check(result, lukas.id)
+
+    def test_child_box_click_and_view_settings(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+        from treekeeper.main_window import MainWindow
+        from treekeeper.tree_view import PlaceholderCard
+        window = MainWindow()
+        window.resize(1200, 800)
+        window._set_tree(TreeKeeper.load(SAMPLE))
+        window.show()
+        walter = by_name(window.tree, "Walter")
+        window.set_focus(walter.id)
+
+        def roles():
+            return {i.role for i in window.view.scene().items() if isinstance(i, PlaceholderCard)}
+
+        try:
+            window.act_parent_boxes.setChecked(True)
+            window.act_child_boxes.setChecked(True)
+            self.assertIn("child", roles())
+            window._run_dialog = lambda person, title: None
+            count = len(window.tree.persons)
+            card = next(i for i in window.view.scene().items() if isinstance(i, PlaceholderCard) and i.role == "child")
+            QTest.mouseClick(window.view.viewport(), Qt.LeftButton, pos=window.view.mapFromScene(card.scenePos()))
+            self.app.processEvents()
+            self.assertEqual(len(window.tree.persons), count)              # cancelled: nobody created
+
+            def ok(person, title):
+                person = person.copy()
+                person.first_name = "Zora"
+                return person
+            window._run_dialog = ok
+            card = next(i for i in window.view.scene().items() if isinstance(i, PlaceholderCard) and i.role == "child")
+            QTest.mouseClick(window.view.viewport(), Qt.LeftButton, pos=window.view.mapFromScene(card.scenePos()))
+            self.app.processEvents()
+            anna = by_name(window.tree, "Zora")
+            self.assertIn(walter.id, anna.parents)
+            self.assertEqual(window.focus_id, walter.id)                    # stays on the parent
+            self.assertIn(anna.id, window.view.cards)
+
+            window.act_child_boxes.setChecked(False)
+            self.assertNotIn("child", roles())
+            self.assertFalse(window.settings.value("show_child_boxes", True, type=bool))
+            heinrich = by_name(window.tree, "Heinrich")
+            window.set_focus(heinrich.id)
+            self.assertEqual(roles(), {"father", "mother"})
+            window.act_parent_boxes.setChecked(False)
+            self.assertEqual(roles(), set())
+        finally:
+            window.act_parent_boxes.setChecked(True)
+            window.act_child_boxes.setChecked(True)
+            window.tree.dirty = False
+            window.close()
 
 
 class DateEditTest(GuiTestCase):

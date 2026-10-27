@@ -24,6 +24,9 @@ py -3 -m venv .venv
   - *Ancestors & descendants*: direct ancestors above, descendants below, one row per generation.
   - *Whole family*: everybody connected through parents, children or partners; laid out with
     Graphviz `dot` (bundled in the .exe), falling back to a built-in layout if dot is missing.
+  - Dashed *+ Add father / mother* boxes above the focus person (when a parent is missing) and an
+    *+ Add child* box below it open the new-person dialog; nothing is created unless you press OK.
+    Turn them on or off in the *View* menu.
 - **Lines:** double line = marriage, single line = partnership, dashed grey = divorced/separated,
   dotted grey = two parents without a recorded relationship.
 

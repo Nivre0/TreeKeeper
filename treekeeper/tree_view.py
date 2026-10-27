@@ -96,7 +96,7 @@ class PersonCard(QGraphicsItem):
 
 
 class PlaceholderCard(QGraphicsItem):
-    """Dashed card for a missing father or mother of the focus person; click to add one."""
+    """Dashed card to add a missing father or mother, or a child, of the focus person."""
 
     def __init__(self, role):
         super().__init__()
@@ -104,7 +104,8 @@ class PlaceholderCard(QGraphicsItem):
         self.hover = False
         self.setAcceptHoverEvents(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip(f"Click to add the {role} of this person")
+        self.setToolTip("Click to add a child of this person" if role == "child"
+                        else f"Click to add the {role} of this person")
 
     def boundingRect(self):
         return QRectF(-lay.CARD_W / 2 - 2, -lay.CARD_H / 2 - 2, lay.CARD_W + 4, lay.CARD_H + 4)
@@ -119,7 +120,8 @@ class PlaceholderCard(QGraphicsItem):
 
     def paint(self, painter, option, widget=None):
         rect = QRectF(-lay.CARD_W / 2, -lay.CARD_H / 2, lay.CARD_W, lay.CARD_H)
-        color = GENDER_COLORS["male" if self.role == "father" else "female"]
+        color = {"father": GENDER_COLORS["male"], "mother": GENDER_COLORS["female"]}.get(
+            self.role, GENDER_COLORS["unknown"])
         painter.setPen(QPen(QColor("#6f7a85") if self.hover else FORMER_COLOR, 1.5, Qt.DashLine))
         painter.setBrush(QBrush(color if self.hover else QColor(255, 255, 255, 0)))
         painter.drawRoundedRect(rect, 8, 8)
@@ -134,6 +136,7 @@ class TreeView(QGraphicsView):
     personClicked = Signal(str)
     personActivated = Signal(str)
     addParentRequested = Signal(str)   # "father" or "mother" of the focus person
+    addChildRequested = Signal()       # a child of the focus person
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -172,18 +175,20 @@ class TreeView(QGraphicsView):
             self.centerOn(self.cards[focus_id])
 
     def _draw_placeholders(self, placeholders, focus_pos):
-        """'Add father/mother' cards with a dashed line down to the focus person."""
+        """'Add father/mother/child' cards with a dashed line to the focus person."""
         if not focus_pos:
             return
         fx, fy = focus_pos
         half_h = lay.CARD_H / 2
         pen = QPen(FORMER_COLOR, 1.3, Qt.DashLine)
         for role, (x, y) in placeholders.items():
-            mid = (y + half_h + fy - half_h) / 2
-            path = QPainterPath(QPointF(x, y + half_h))
-            path.lineTo(x, mid)
-            path.lineTo(fx, mid)
-            path.lineTo(fx, fy - half_h)
+            # From the bottom of the upper card to the top of the lower one.
+            (ux, uy), (lx, ly) = ((fx, fy), (x, y)) if role == "child" else ((x, y), (fx, fy))
+            mid = (uy + half_h + ly - half_h) / 2
+            path = QPainterPath(QPointF(ux, uy + half_h))
+            path.lineTo(ux, mid)
+            path.lineTo(lx, mid)
+            path.lineTo(lx, ly - half_h)
             self.scene().addPath(path, pen).setZValue(0)
             card = PlaceholderCard(role)
             card.setPos(x, y)
@@ -316,7 +321,10 @@ class TreeView(QGraphicsView):
         placeholder = next((i for i in self.items(event.position().toPoint()) if isinstance(i, PlaceholderCard)), None)
         if placeholder and moved < 5:
             # Open the dialog after this event has finished, not inside the mouse handler.
-            QTimer.singleShot(0, lambda role=placeholder.role: self.addParentRequested.emit(role))
+            if placeholder.role == "child":
+                QTimer.singleShot(0, self.addChildRequested.emit)
+            else:
+                QTimer.singleShot(0, lambda role=placeholder.role: self.addParentRequested.emit(role))
             return
         card = self._card_at(event.position().toPoint())
         if card and moved < 5:
