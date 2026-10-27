@@ -5,10 +5,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from familytree import dates, layout  # noqa: E402
-from familytree.model import FamilyTree, Partnership, Person  # noqa: E402
+from treekeeper import dates, layout  # noqa: E402
+from treekeeper.model import TreeKeeper, Partnership, Person  # noqa: E402
 
-SAMPLE = os.path.join(os.path.dirname(__file__), "..", "familytree", "resources", "sample_family.json")
+SAMPLE = os.path.join(os.path.dirname(__file__), "..", "treekeeper", "resources", "sample_family.json")
 
 
 def by_name(tree, first):
@@ -34,7 +34,7 @@ class DatesTest(unittest.TestCase):
 
 class ModelTest(unittest.TestCase):
     def setUp(self):
-        self.tree = FamilyTree()
+        self.tree = TreeKeeper()
         self.a = self.tree.add_person(Person(first_name="A", gender="male"))
         self.b = self.tree.add_person(Person(first_name="B", gender="female"))
         self.c = self.tree.add_person(Person(first_name="C", parents=[self.a.id, self.b.id]))
@@ -81,7 +81,7 @@ class ModelTest(unittest.TestCase):
              "partnerships": [{"partner": "2", "type": "marriage", "status": "current"}]},
             {"id": "2", "first_name": "Y"},
         ]
-        tree = FamilyTree.from_json_data(raw)
+        tree = TreeKeeper.from_json_data(raw)
         self.assertEqual(tree.get("1").parents, [])
         self.assertIsNotNone(tree.get("2").partnership_with("1"))
         self.assertTrue(tree.warnings)
@@ -90,7 +90,7 @@ class ModelTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "t.json")
             self.tree.save(path)
-            loaded = FamilyTree.load(path)
+            loaded = TreeKeeper.load(path)
         self.assertEqual({p.id: p.to_dict() for p in loaded.persons.values()},
                          {p.id: p.to_dict() for p in self.tree.persons.values()})
         self.assertFalse(loaded.warnings)
@@ -98,7 +98,7 @@ class ModelTest(unittest.TestCase):
 
 class SampleAndLayoutTest(unittest.TestCase):
     def setUp(self):
-        self.tree = FamilyTree.load(SAMPLE)
+        self.tree = TreeKeeper.load(SAMPLE)
 
     def test_sample_is_consistent(self):
         self.assertFalse(self.tree.warnings)

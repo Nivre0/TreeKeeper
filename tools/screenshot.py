@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from familytree.main_window import MainWindow, resource_path  # noqa: E402
-from familytree.model import FamilyTree  # noqa: E402
+from treekeeper.main_window import MainWindow, resource_path  # noqa: E402
+from treekeeper.model import TreeKeeper  # noqa: E402
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     app.setStyle("Fusion")
     window = MainWindow()
     window.resize(1500, 900)
-    tree = FamilyTree.load(resource_path("sample_family.json"))
+    tree = TreeKeeper.load(resource_path("sample_family.json"))
     window._set_tree(tree)
     window.show()
     window.set_focus(next(p.id for p in tree.persons.values() if p.first_name == focus))

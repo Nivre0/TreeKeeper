@@ -1,7 +1,7 @@
 """Data model: a flat list of persons stored in one JSON file.
 
 Children are never stored; they are derived from the persons' parent lists.
-Partnerships are stored on both partners and kept mirrored by FamilyTree.
+Partnerships are stored on both partners and kept mirrored by TreeKeeper.
 """
 
 import json
@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from . import dates
 
-FILE_FORMAT = "simple-family-tree"
+FILE_FORMAT = "treekeeper"
 FILE_VERSION = 1
 
 GENDERS = ("male", "female", "diverse", "unknown")
@@ -165,7 +165,7 @@ class Person:
         )
 
 
-class FamilyTree:
+class TreeKeeper:
     """All persons of one file plus the operations that keep references consistent."""
 
     def __init__(self):

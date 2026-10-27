@@ -1,4 +1,4 @@
-# PyInstaller spec – build with:  .venv\Scripts\pyinstaller FamilyTree.spec --noconfirm
+# PyInstaller spec – build with:  .venv\Scripts\pyinstaller TreeKeeper.spec --noconfirm
 # Bundles Graphviz (dot.exe + DLLs + plugin config) into a "graphviz" folder.
 # Set GRAPHVIZ_BIN to use a Graphviz installation other than the default.
 # Set ONEFILE=1 for a single .exe (slower start, it unpacks itself on every launch).
@@ -18,14 +18,14 @@ onefile = os.environ.get("ONEFILE") == "1"
 
 a = Analysis(
     ["main.py"],
-    datas=[("familytree/resources", "familytree/resources")] + graphviz_files,
+    datas=[("treekeeper/resources", "treekeeper/resources")] + graphviz_files,
     excludes=["tkinter", "unittest", "PySide6.QtWebEngineCore", "PySide6.QtQml", "PySide6.QtQuick",
               "PySide6.QtMultimedia", "PySide6.Qt3DCore", "PySide6.QtCharts", "PySide6.QtPdf"],
 )
 pyz = PYZ(a.pure)
 
 if onefile:
-    exe = EXE(pyz, a.scripts, a.binaries, a.datas, name="FamilyTree", console=False, upx=False)
+    exe = EXE(pyz, a.scripts, a.binaries, a.datas, name="TreeKeeper", console=False, upx=False)
 else:
-    exe = EXE(pyz, a.scripts, exclude_binaries=True, name="FamilyTree", console=False, upx=False)
-    coll = COLLECT(exe, a.binaries, a.datas, name="FamilyTree", upx=False)
+    exe = EXE(pyz, a.scripts, exclude_binaries=True, name="TreeKeeper", console=False, upx=False)
+    coll = COLLECT(exe, a.binaries, a.datas, name="TreeKeeper", upx=False)

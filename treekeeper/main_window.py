@@ -11,12 +11,12 @@ from PySide6.QtWidgets import (
 )
 
 from . import layout as lay
-from .model import FamilyTree, Partnership, Person
+from .model import TreeKeeper, Partnership, Person
 from .person_dialog import PersonDialog
 from .tree_view import TreeView
 
-APP_NAME = "Family Tree"
-FILE_FILTER = "Family tree files (*.json);;All files (*)"
+APP_NAME = "TreeKeeper"
+FILE_FILTER = "TreeKeeper files (*.json);;All files (*)"
 MODE_DIRECT, MODE_ALL = 0, 1
 LEGEND = ("<span style='color:#5a6470'>══</span> marriage &nbsp; "
           "<span style='color:#5a6470'>──</span> partnership &nbsp; "
@@ -27,15 +27,15 @@ LEGEND = ("<span style='color:#5a6470'>══</span> marriage &nbsp; "
 def resource_path(name):
     base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
     if getattr(sys, "frozen", False):
-        base = os.path.join(base, "familytree")
+        base = os.path.join(base, "treekeeper")
     return os.path.join(base, "resources", name)
 
 
 class MainWindow(QMainWindow):
     def __init__(self, path=None):
         super().__init__()
-        self.settings = QSettings("SimpleFamilyTree", "FamilyTree")
-        self.tree = FamilyTree()
+        self.settings = QSettings("TreeKeeper", "TreeKeeper")
+        self.tree = TreeKeeper()
         self.focus_id = None
         self.resize(1300, 820)
 
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         if last and os.path.isfile(last):
             self._load(last)
         else:
-            self._set_tree(FamilyTree())
+            self._set_tree(TreeKeeper())
 
     # --- actions & menus -------------------------------------------------------------
 
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
 
     def _load(self, path):
         try:
-            tree = FamilyTree.load(path)
+            tree = TreeKeeper.load(path)
         except (OSError, ValueError) as e:
             QMessageBox.critical(self, "Open failed", f"Could not open {path}:\n{e}")
             return False
@@ -216,13 +216,13 @@ class MainWindow(QMainWindow):
 
     def file_new(self):
         if self.maybe_save():
-            self._set_tree(FamilyTree())
+            self._set_tree(TreeKeeper())
 
     def file_open(self):
         if not self.maybe_save():
             return
         start = os.path.dirname(self.tree.path or self.settings.value("last_file", "") or "")
-        path, _ = QFileDialog.getOpenFileName(self, "Open family tree", start, FILE_FILTER)
+        path, _ = QFileDialog.getOpenFileName(self, "Open TreeKeeper file", start, FILE_FILTER)
         if path:
             self._load(path)
 
@@ -230,7 +230,7 @@ class MainWindow(QMainWindow):
         if not self.maybe_save():
             return
         try:
-            tree = FamilyTree.load(resource_path("sample_family.json"))
+            tree = TreeKeeper.load(resource_path("sample_family.json"))
         except (OSError, ValueError) as e:
             QMessageBox.critical(self, "Open failed", str(e))
             return
@@ -244,7 +244,7 @@ class MainWindow(QMainWindow):
 
     def file_save_as(self):
         start = self.tree.path or os.path.join(os.path.expanduser("~"), "Documents", "family.json")
-        path, _ = QFileDialog.getSaveFileName(self, "Save family tree as", start, FILE_FILTER)
+        path, _ = QFileDialog.getSaveFileName(self, "Save TreeKeeper file as", start, FILE_FILTER)
         if not path:
             return False
         if not path.lower().endswith(".json"):

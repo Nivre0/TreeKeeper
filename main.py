@@ -1,10 +1,10 @@
-"""Family Tree – a very simple genealogy app. Start: python main.py [file.json]"""
+"""TreeKeeper – a very simple genealogy app. Start: python main.py [file.json]"""
 
 import sys
 
 from PySide6.QtWidgets import QApplication
 
-from familytree.main_window import APP_NAME, MainWindow
+from treekeeper.main_window import APP_NAME, MainWindow
 
 
 def main():

@@ -10,7 +10,7 @@ import sys
 import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from familytree.model import FamilyTree, Partnership, Person  # noqa: E402
+from treekeeper.model import TreeKeeper, Partnership, Person  # noqa: E402
 
 NS = uuid.UUID("6f1f6c1e-0b7a-4c55-9a43-3d1d3c2b9a10")
 
@@ -53,7 +53,7 @@ PARTNERSHIPS = [
 
 
 def main():
-    tree = FamilyTree()
+    tree = TreeKeeper()
     for key, first, middle, last, birth_name, gender, born, bplace, died, dplace, parents, notes in PEOPLE:
         tree.add_person(Person(
             id=pid(key), first_name=first, middle_name=middle, last_name=last,
@@ -64,7 +64,7 @@ def main():
         person = tree.get(pid(a)).copy()
         person.partnerships.append(Partnership(pid(b), ptype, status, start, end))
         tree.update_person(person)
-    out = os.path.join(os.path.dirname(__file__), "..", "familytree", "resources", "sample_family.json")
+    out = os.path.join(os.path.dirname(__file__), "..", "treekeeper", "resources", "sample_family.json")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     tree.save(os.path.abspath(out))
     print(f"Wrote {len(tree.persons)} persons to {os.path.abspath(out)}")

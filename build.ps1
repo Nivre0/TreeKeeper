@@ -9,4 +9,4 @@ if (-not (Test-Path .venv)) {
 .\.venv\Scripts\python -m unittest discover -s tests
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 if ($OneFile) { $env:ONEFILE = "1" } else { Remove-Item Env:ONEFILE -ErrorAction SilentlyContinue }
-.\.venv\Scripts\pyinstaller FamilyTree.spec --noconfirm
+.\.venv\Scripts\pyinstaller TreeKeeper.spec --noconfirm

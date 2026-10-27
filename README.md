@@ -1,4 +1,4 @@
-# Family Tree
+# TreeKeeper
 
 A deliberately simple genealogy desktop app for Windows (Python 3 + PySide6).
 All data lives in one JSON file that you choose via *File › Open / Save as*.
@@ -35,7 +35,7 @@ filled in (use `?` for an unknown date of death).
 
 ```json
 {
-  "format": "simple-family-tree",
+  "format": "treekeeper",
   "version": 1,
   "persons": [
     {
@@ -61,8 +61,8 @@ references are repaired and reported.
 Requires Graphviz installed (`winget install Graphviz.Graphviz`) so it can be bundled.
 
 ```
-.\build.ps1            # -> dist\FamilyTree\FamilyTree.exe (folder, fast start)
-.\build.ps1 -OneFile   # -> dist\FamilyTree.exe (single file, slower start)
+.\build.ps1            # -> dist\TreeKeeper\TreeKeeper.exe (folder, fast start)
+.\build.ps1 -OneFile   # -> dist\TreeKeeper.exe (single file, slower start)
 ```
 
 ## Development
