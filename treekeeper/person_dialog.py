@@ -2,14 +2,14 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QGridLayout, QGroupBox,
+    QCheckBox, QComboBox, QCompleter, QDialog, QDialogButtonBox, QFormLayout, QGridLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QToolButton,
     QVBoxLayout, QWidget,
 )
 
+from .date_edit import DateEdit
 from .model import GENDERS, PARTNERSHIP_STATUSES, PARTNERSHIP_TYPES, Partnership
 
-DATE_HINT = "e.g. 1923, 12.03.1923, ca. 1880, before 1900"
 NONE_LABEL = "— none —"
 
 
@@ -61,6 +61,35 @@ def _combo(values, current):
     return combo
 
 
+class PartnershipRow:
+    """Widgets of one partnership: partner, type, status on one line, from/to dates below."""
+
+    def __init__(self, tree, own_id, ps):
+        self.picker = PersonPicker(tree, exclude_id=own_id)
+        self.picker.set_person(ps.partner or None)
+        self.type_combo = _combo(PARTNERSHIP_TYPES, ps.type)
+        self.status_combo = _combo(PARTNERSHIP_STATUSES, ps.status)
+        self.remove = QToolButton()
+        self.remove.setText("✕")
+        self.remove.setToolTip("Remove this partnership")
+        self.start = DateEdit()
+        self.start.set_text(ps.start)
+        self.end = DateEdit()
+        self.end.set_text(ps.end)
+        self.dates = QWidget()
+        line = QHBoxLayout(self.dates)
+        line.setContentsMargins(16, 0, 0, 8)
+        line.addWidget(QLabel("from"))
+        line.addWidget(self.start)
+        line.addSpacing(10)
+        line.addWidget(QLabel("to"))
+        line.addWidget(self.end)
+        line.addStretch()
+
+    def widgets(self):
+        return (self.picker, self.type_combo, self.status_combo, self.remove, self.dates)
+
+
 class PartnershipRows(QWidget):
     """Editable list of partnerships: partner, type, status, from, to."""
 
@@ -71,41 +100,28 @@ class PartnershipRows(QWidget):
         self.rows = []
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
-        for col, title in enumerate(("Partner", "Type", "Status", "From", "To")):
+        for col, title in enumerate(("Partner", "Type", "Status")):
             label = QLabel(f"<b>{title}</b>")
             self.grid.addWidget(label, 0, col)
         self.grid.setColumnStretch(0, 3)
         self.empty_label = QLabel("<i>No partners recorded.</i>")
-        self.grid.addWidget(self.empty_label, 1, 0, 1, 6)
+        self.grid.addWidget(self.empty_label, 1, 0, 1, 4)
 
     def add_row(self, partnership=None):
-        ps = partnership or Partnership("", "marriage", "current")
-        picker = PersonPicker(self.tree, exclude_id=self.own_id)
-        picker.set_person(ps.partner or None)
-        type_combo = _combo(PARTNERSHIP_TYPES, ps.type)
-        status_combo = _combo(PARTNERSHIP_STATUSES, ps.status)
-        start = QLineEdit(ps.start)
-        end = QLineEdit(ps.end)
-        for edit in (start, end):
-            edit.setPlaceholderText("date")
-            edit.setToolTip(DATE_HINT)
-            edit.setMaximumWidth(110)
-        remove = QToolButton()
-        remove.setText("✕")
-        remove.setToolTip("Remove this partnership")
-        row = (picker, type_combo, status_combo, start, end, remove)
-        remove.clicked.connect(lambda: self._remove_row(row))
+        row = PartnershipRow(self.tree, self.own_id, partnership or Partnership("", "marriage", "current"))
+        row.remove.clicked.connect(lambda: self._remove_row(row))
         grid_row = self.grid.rowCount()
-        for col, widget in enumerate(row):
+        for col, widget in enumerate((row.picker, row.type_combo, row.status_combo, row.remove)):
             self.grid.addWidget(widget, grid_row, col)
+        self.grid.addWidget(row.dates, grid_row + 1, 0, 1, 4)
         self.rows.append(row)
         self.empty_label.hide()
         if partnership is None:
-            picker.setFocus()
+            row.picker.setFocus()
 
     def _remove_row(self, row):
         self.rows.remove(row)
-        for widget in row:
+        for widget in row.widgets():
             self.grid.removeWidget(widget)
             widget.deleteLater()
         self.empty_label.setVisible(not self.rows)
@@ -113,14 +129,18 @@ class PartnershipRows(QWidget):
     def partnerships(self):
         """List of Partnership; raises ValueError on invalid input."""
         result = []
-        for picker, type_combo, status_combo, start, end, _ in self.rows:
-            partner = picker.person_id()
+        for row in self.rows:
+            partner = row.picker.person_id()
             if partner is None:
                 continue
+            name = self.tree.get(partner).full_name
             if any(p.partner == partner for p in result):
-                raise ValueError(f"{self.tree.get(partner).full_name} is listed twice as partner.")
-            result.append(Partnership(partner, type_combo.currentData(), status_combo.currentData(),
-                                      start.text().strip(), end.text().strip()))
+                raise ValueError(f"{name} is listed twice as partner.")
+            for label, edit in (("start", row.start), ("end", row.end)):
+                if edit.error():
+                    raise ValueError(f"Partnership with {name}, {label} date: {edit.error()}")
+            result.append(Partnership(partner, row.type_combo.currentData(), row.status_combo.currentData(),
+                                      row.start.text(), row.end.text()))
         return result
 
 
@@ -148,11 +168,19 @@ class PersonDialog(QDialog):
         for g in GENDERS:
             self.gender.addItem(g.capitalize(), g)
         self.gender.setCurrentIndex(self.gender.findData(p.gender))
-        self.birth_date = line(p.birth_date, DATE_HINT)
+        self.birth_date = DateEdit()
+        self.birth_date.set_text(p.birth_date)
         self.birth_place = line(p.birth_place, "place")
-        self.death_date = line(p.death_date, DATE_HINT + " or ? if unknown")
+        self.deceased = QCheckBox("Deceased")
+        self.deceased.setToolTip("Tick if the person has died; the date may stay empty if unknown.")
+        self.death_date = DateEdit()
+        self.death_date.set_text("" if p.death_date.strip() == "?" else p.death_date)
         self.death_place = line(p.death_place, "place")
-        self.death_date.setToolTip("Leave empty if the person is alive. Enter ? if the date of death is unknown.")
+        self.deceased.toggled.connect(self.death_date.setEnabled)
+        self.deceased.toggled.connect(self.death_place.setEnabled)
+        self.deceased.setChecked(p.deceased)
+        self.death_date.setEnabled(p.deceased)
+        self.death_place.setEnabled(p.deceased)
 
         name_box = QGroupBox("Name")
         name_form = QFormLayout(name_box)
@@ -164,8 +192,11 @@ class PersonDialog(QDialog):
 
         life_box = QGroupBox("Life")
         life_form = QFormLayout(life_box)
-        life_form.addRow("Born:", self._pair(self.birth_date, self.birth_place))
-        life_form.addRow("Died:", self._pair(self.death_date, self.death_place))
+        life_form.addRow("Born:", self.birth_date)
+        life_form.addRow("Birthplace:", self.birth_place)
+        life_form.addRow("", self.deceased)
+        life_form.addRow("Died:", self.death_date)
+        life_form.addRow("Place of death:", self.death_place)
 
         parents_box = QGroupBox("Parents")
         parents_form = QFormLayout(parents_box)
@@ -211,19 +242,15 @@ class PersonDialog(QDialog):
         layout.addWidget(buttons)
         self.first_name.setFocus()
 
-    @staticmethod
-    def _pair(date_edit, place_edit):
-        widget = QWidget()
-        row = QHBoxLayout(widget)
-        row.setContentsMargins(0, 0, 0, 0)
-        date_edit.setMinimumWidth(170)
-        row.addWidget(date_edit, 1)
-        row.addWidget(QLabel("in"))
-        row.addWidget(place_edit, 1)
-        return widget
-
     def accept(self):
         p = self.person
+        dated = [("Date of birth", self.birth_date)]
+        if self.deceased.isChecked():
+            dated.append(("Date of death", self.death_date))
+        for label, edit in dated:
+            if edit.error():
+                QMessageBox.warning(self, "Invalid date", f"{label}: {edit.error()}")
+                return
         try:
             parents = [pid for pid in (pk.person_id() for pk in self.parent_pickers) if pid]
             partnerships = self.partner_rows.partnerships()
@@ -246,10 +273,14 @@ class PersonDialog(QDialog):
             QMessageBox.warning(self, "Missing name", "Please enter at least a first or last name.")
             return
         p.gender = self.gender.currentData()
-        p.birth_date = self.birth_date.text().strip()
+        p.birth_date = self.birth_date.text()
         p.birth_place = self.birth_place.text().strip()
-        p.death_date = self.death_date.text().strip()
-        p.death_place = self.death_place.text().strip()
+        if self.deceased.isChecked():
+            # "?" marks a death with unknown date, so the person still counts as deceased.
+            p.death_date = self.death_date.text() or "?"
+            p.death_place = self.death_place.text().strip()
+        else:
+            p.death_date = p.death_place = ""
         p.parents = parents
         p.partnerships = partnerships
         p.notes = self.notes.toPlainText().rstrip()
