@@ -152,6 +152,36 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(self.window.focus_id, walter.id)
         self.assertEqual(shown["view"], "whole_family")
 
+    def test_unknown_path_with_body_keeps_connection_usable(self):
+        # Claude Code first probes OAuth endpoints (e.g. POST /register with a JSON body) and then
+        # reuses the same keep-alive connection for /mcp. The unread body must not corrupt it.
+        import http.client
+        result = {}
+
+        def run():
+            conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+            body = json.dumps({"client_name": "probe", "redirect_uris": ["http://localhost:1/callback"]})
+            conn.request("POST", "/register", body=body, headers={"Content-Type": "application/json"})
+            response = conn.getresponse()
+            result["register"] = response.status
+            response.read()
+            if response.will_close:
+                conn.close()
+                conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+            conn.request("POST", "/mcp", body=json.dumps({"jsonrpc": "2.0", "id": 7, "method": "ping"}),
+                         headers={"Content-Type": "application/json"})
+            response = conn.getresponse()
+            result["mcp"] = (response.status, json.loads(response.read()))
+            conn.close()
+
+        thread = threading.Thread(target=run)
+        thread.start()
+        while thread.is_alive():
+            self.app.processEvents()
+            thread.join(0.01)
+        self.assertEqual(result["register"], 404)
+        self.assertEqual(result["mcp"], (200, {"jsonrpc": "2.0", "id": 7, "result": {}}))
+
     def test_rejects_foreign_origin_and_port_in_use(self):
         response = self.post({"jsonrpc": "2.0", "id": 1, "method": "ping"}, {"Origin": "http://evil.example"})
         self.assertEqual(response["status"], 403)

@@ -172,12 +172,22 @@ class _Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def _read_body(self):
+        """Always consume the request body, even for requests we reject: the connection is
+        kept alive and unread bytes would be parsed as the start of the next request."""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            self.close_connection = True
+            return b""
+        return self.rfile.read(length) if length > 0 else b""
+
     def do_POST(self):
+        body = self._read_body()
         if not self._check_request():
             return
         try:
-            length = int(self.headers.get("Content-Length") or 0)
-            payload = json.loads(self.rfile.read(length) or b"null")
+            payload = json.loads(body or b"null")
         except (ValueError, UnicodeDecodeError):
             self._send(400, _error(None, -32700, "Parse error"))
             return
@@ -193,9 +203,11 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # No server-initiated messages, so no event stream (allowed by the spec).
+        self._read_body()
         if self._check_request():
             self._send(405, headers={"Allow": "POST"})
 
     def do_DELETE(self):
+        self._read_body()
         if self._check_request():
             self._send(200)
