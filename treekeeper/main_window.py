@@ -3,14 +3,18 @@
 import os
 import sys
 
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QCoreApplication, QSettings, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QMainWindow, QMenu, QMessageBox, QPushButton, QSplitter, QToolBar, QVBoxLayout, QWidget,
+    QMainWindow, QMenu, QMessageBox, QPushButton, QSizePolicy, QSplitter, QToolBar, QToolButton,
+    QVBoxLayout, QWidget,
 )
 
 from . import layout as lay
+from .ai_dialog import AiAccessDialog
+from .ai_tools import TreeTools
+from .mcp_server import DEFAULT_PORT, McpServer
 from .model import TreeKeeper, Partnership, Person
 from .person_dialog import PersonDialog
 from .tree_view import TreeView
@@ -34,9 +38,12 @@ def resource_path(name):
 class MainWindow(QMainWindow):
     def __init__(self, path=None):
         super().__init__()
-        self.settings = QSettings("TreeKeeper", "TreeKeeper")
+        self.settings = QSettings(QCoreApplication.organizationName() or APP_NAME, APP_NAME)
         self.tree = TreeKeeper()
         self.focus_id = None
+        self.mcp_server = McpServer(TreeTools(self))
+        self.mcp_error = None
+        self.ai_dialog = None
         self.resize(1300, 820)
 
         # --- left: search + list + buttons
@@ -119,6 +126,56 @@ class MainWindow(QMainWindow):
             self._load(last)
         else:
             self._set_tree(TreeKeeper())
+        if self.settings.value("mcp_autostart", False, type=bool):
+            self.start_mcp_server(self.mcp_port())
+
+    # --- AI access (MCP server) --------------------------------------------------------
+
+    def mcp_port(self):
+        return self.settings.value("mcp_port", DEFAULT_PORT, type=int)
+
+    def start_mcp_server(self, port):
+        try:
+            self.mcp_server.start(port)
+            self.mcp_error = None
+            self.settings.setValue("mcp_port", port)
+        except OSError as e:
+            self.mcp_error = f"port {port} is not available ({e.strerror or e})"
+        self._update_ai_button()
+
+    def stop_mcp_server(self):
+        self.mcp_server.stop()
+        self._update_ai_button()
+
+    def _update_ai_button(self):
+        running = self.mcp_server.running
+        self.ai_button.setToolTip(f"AI access: MCP server running at {self.mcp_server.url}" if running
+                                  else "AI access: start an MCP server for Claude and other AI assistants")
+        self.ai_button.setStyleSheet("QToolButton { background: #d7efd9; border-radius: 6px; }" if running else "")
+
+    def show_ai_dialog(self):
+        if self.ai_dialog is None:
+            self.ai_dialog = AiAccessDialog(self)
+        self.ai_dialog._update()
+        self.ai_dialog.show()
+        self.ai_dialog.raise_()
+        self.ai_dialog.activateWindow()
+
+    def refresh_after_external_change(self, message, focus=None):
+        """Called after an AI tool changed the tree."""
+        if focus:
+            self.focus_id = focus
+        if self.focus_id not in self.tree.persons:
+            persons = self.tree.sorted_persons()
+            self.focus_id = persons[0].id if persons else None
+        self.refresh_all(recenter=bool(focus))
+        self.statusBar().showMessage(message, 6000)
+
+    def set_view_mode(self, name):
+        self.mode_combo.setCurrentIndex(MODE_ALL if name == "whole_family" else MODE_DIRECT)
+
+    def view_mode_name(self):
+        return "whole_family" if self.mode_combo.currentIndex() == MODE_ALL else "ancestors_and_descendants"
 
     # --- actions & menus -------------------------------------------------------------
 
@@ -161,7 +218,19 @@ class MainWindow(QMainWindow):
         toolbar.setToolButtonStyle(Qt.ToolButtonTextOnly)
         for action in (self.act_new, self.act_edit, None, self.act_child, self.act_parent, self.act_partner):
             toolbar.addSeparator() if action is None else toolbar.addAction(action)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar.addWidget(spacer)
+        self.ai_button = QToolButton()
+        self.ai_button.setText("🤖")
+        self.ai_button.setAutoRaise(True)
+        font = self.ai_button.font()
+        font.setPointSize(15)
+        self.ai_button.setFont(font)
+        self.ai_button.clicked.connect(self.show_ai_dialog)
+        toolbar.addWidget(self.ai_button)
         self.addToolBar(toolbar)
+        self._update_ai_button()
 
     def _update_actions(self):
         has_focus = self.focus_id is not None
@@ -266,6 +335,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         if self.maybe_save():
             self.settings.setValue("geometry", self.saveGeometry())
+            self.mcp_server.stop()
             event.accept()
         else:
             event.ignore()

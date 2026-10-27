@@ -33,6 +33,20 @@ They are stored as text such as `12.03.1923`, `03.1923`, `ca. 1880`, `before 190
 dates are kept unchanged until you edit them. Tick *Deceased* for persons who have died – the date of
 death may stay empty if it is unknown (stored as `?`).
 
+## AI access (MCP server)
+
+The 🤖 button (top right) opens a window to start an [MCP](https://modelcontextprotocol.io) server
+inside the running app, on `http://127.0.0.1:<port>/mcp` (default port **8427**). AI assistants such as
+Claude can then list, create, edit and delete persons, set parents and partnerships, show a person in
+the tree and save the file. Changes go into the file that is open in the window and appear immediately.
+The server only accepts connections from this computer and stops when TreeKeeper closes; it can be set
+to start automatically.
+
+The window shows ready-to-copy configuration:
+
+- **Claude Desktop:** `claude_desktop_config.json` entry using `npx mcp-remote <url>` (needs Node.js)
+- **Claude Code:** `claude mcp add --transport http treekeeper http://127.0.0.1:8427/mcp`
+
 ## Data file
 
 ```json
