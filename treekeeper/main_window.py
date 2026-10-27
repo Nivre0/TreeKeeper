@@ -3,7 +3,7 @@
 import os
 import sys
 
-from PySide6.QtCore import QCoreApplication, QSettings, Qt
+from PySide6.QtCore import QCoreApplication, QSettings, QSize, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from . import layout as lay
 from .ai_dialog import AiAccessDialog
 from .ai_tools import TreeTools
+from .icons import robot_icon
 from .mcp_server import DEFAULT_PORT, McpServer
 from .model import TreeKeeper, Partnership, Person
 from .person_dialog import PersonDialog
@@ -151,7 +152,7 @@ class MainWindow(QMainWindow):
         running = self.mcp_server.running
         self.ai_button.setToolTip(f"AI access: MCP server running at {self.mcp_server.url}" if running
                                   else "AI access: start an MCP server for Claude and other AI assistants")
-        self.ai_button.setStyleSheet("QToolButton { background: #d7efd9; border-radius: 6px; }" if running else "")
+        self.ai_button.setIcon(robot_icon(active=running))
 
     def show_ai_dialog(self):
         if self.ai_dialog is None:
@@ -222,11 +223,8 @@ class MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         toolbar.addWidget(spacer)
         self.ai_button = QToolButton()
-        self.ai_button.setText("🤖")
         self.ai_button.setAutoRaise(True)
-        font = self.ai_button.font()
-        font.setPointSize(15)
-        self.ai_button.setFont(font)
+        self.ai_button.setIconSize(QSize(24, 24))
         self.ai_button.clicked.connect(self.show_ai_dialog)
         toolbar.addWidget(self.ai_button)
         self.addToolBar(toolbar)

@@ -1,6 +1,7 @@
 """Window for starting/stopping the MCP server and copying the client configuration."""
 
 import json
+import sys
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase, QGuiApplication
@@ -9,6 +10,7 @@ from PySide6.QtWidgets import (
     QTabWidget, QVBoxLayout, QWidget,
 )
 
+from .icons import robot_icon
 from .mcp_server import SERVER_NAME
 
 INTRO = ("Let AI assistants such as Claude read and change the family tree that is open here: "
@@ -18,8 +20,11 @@ INTRO = ("Let AI assistants such as Claude read and change the family tree that 
 
 
 def desktop_config(url):
-    return json.dumps({"mcpServers": {SERVER_NAME: {"command": "npx", "args": ["-y", "mcp-remote", url]}}},
-                      indent=2)
+    # Claude Desktop only starts local programs; mcp-remote bridges to our HTTP server.
+    # On Windows npx is a script, so it is started through cmd.
+    command = ["cmd", "/c", "npx"] if sys.platform == "win32" else ["npx"]
+    entry = {"command": command[0], "args": command[1:] + ["-y", "mcp-remote", url]}
+    return json.dumps({"mcpServers": {SERVER_NAME: entry}}, indent=2)
 
 
 def code_command(url):
@@ -32,6 +37,7 @@ class AiAccessDialog(QDialog):
         self.window = window
         self.server = window.mcp_server
         self.setWindowTitle("AI access (MCP server)")
+        self.setWindowIcon(robot_icon())
         self.setMinimumWidth(560)
 
         intro = QLabel(INTRO)
