@@ -1,0 +1,399 @@
+{
+  "format": "simple-family-tree",
+  "version": 1,
+  "persons": [
+    {
+      "id": "0054c9d9-970c-5ca9-9cd5-0f366abf9693",
+      "first_name": "Anna",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "Brunner",
+      "gender": "female",
+      "birth_date": "ca. 1905",
+      "birth_place": "Winterthur",
+      "death_date": "1980",
+      "death_place": "Zürich",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "7cb3c9fd-5110-58e0-8abe-b402c6fffc7d",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1926",
+          "to": "1971"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bdcb3620-17b3-5fa7-9f22-aa61eb25b3a4",
+      "first_name": "Hedwig",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "Frei",
+      "gender": "female",
+      "birth_date": "1938",
+      "birth_place": "Bern",
+      "death_date": "",
+      "death_place": "",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "24aacbc2-573d-5222-bfd2-3f3174d72c3e",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1965",
+          "to": "1999"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "7cb3c9fd-5110-58e0-8abe-b402c6fffc7d",
+      "first_name": "Heinrich",
+      "middle_name": "Albert",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1902",
+      "birth_place": "Zürich",
+      "death_date": "14.11.1971",
+      "death_place": "Zürich",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "0054c9d9-970c-5ca9-9cd5-0f366abf9693",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1926",
+          "to": "1971"
+        }
+      ],
+      "notes": "Carpenter."
+    },
+    {
+      "id": "489c13ab-a33c-5ae2-bf45-dca68b54ed5d",
+      "first_name": "Lukas",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1985",
+      "birth_place": "Zürich",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "2ff7d04c-0899-5d5d-b61f-373cc54c016d",
+        "c5db9553-321e-5ca1-bfba-0f9f5df9da58"
+      ],
+      "partnerships": [],
+      "notes": ""
+    },
+    {
+      "id": "283f6f59-bd39-5442-a296-9628088facea",
+      "first_name": "Nina",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "female",
+      "birth_date": "1988",
+      "birth_place": "Zürich",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "2ff7d04c-0899-5d5d-b61f-373cc54c016d",
+        "c5db9553-321e-5ca1-bfba-0f9f5df9da58"
+      ],
+      "partnerships": [],
+      "notes": ""
+    },
+    {
+      "id": "6c55b93c-eb81-5fe9-a47f-eae59ff14f08",
+      "first_name": "Ruth",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "female",
+      "birth_date": "1966",
+      "birth_place": "Bern",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "24aacbc2-573d-5222-bfd2-3f3174d72c3e",
+        "bdcb3620-17b3-5fa7-9f22-aa61eb25b3a4"
+      ],
+      "partnerships": [],
+      "notes": "Half-sister of Thomas."
+    },
+    {
+      "id": "c5db9553-321e-5ca1-bfba-0f9f5df9da58",
+      "first_name": "Sandra",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "Weber",
+      "gender": "female",
+      "birth_date": "1957",
+      "birth_place": "Aarau",
+      "death_date": "",
+      "death_place": "",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "2ff7d04c-0899-5d5d-b61f-373cc54c016d",
+          "type": "marriage",
+          "status": "current",
+          "from": "1983",
+          "to": ""
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "2ff7d04c-0899-5d5d-b61f-373cc54c016d",
+      "first_name": "Thomas",
+      "middle_name": "Walter",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1954",
+      "birth_place": "Luzern",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "24aacbc2-573d-5222-bfd2-3f3174d72c3e",
+        "fd1df42e-8d03-5e72-bfdc-c569eaa609b6"
+      ],
+      "partnerships": [
+        {
+          "partner": "c5db9553-321e-5ca1-bfba-0f9f5df9da58",
+          "type": "marriage",
+          "status": "current",
+          "from": "1983",
+          "to": ""
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "24aacbc2-573d-5222-bfd2-3f3174d72c3e",
+      "first_name": "Walter",
+      "middle_name": "",
+      "last_name": "Keller",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "12.03.1928",
+      "birth_place": "Zürich",
+      "death_date": "1999",
+      "death_place": "Bern",
+      "parents": [
+        "7cb3c9fd-5110-58e0-8abe-b402c6fffc7d",
+        "0054c9d9-970c-5ca9-9cd5-0f366abf9693"
+      ],
+      "partnerships": [
+        {
+          "partner": "fd1df42e-8d03-5e72-bfdc-c569eaa609b6",
+          "type": "marriage",
+          "status": "divorced",
+          "from": "1952",
+          "to": "1963"
+        },
+        {
+          "partner": "bdcb3620-17b3-5fa7-9f22-aa61eb25b3a4",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1965",
+          "to": "1999"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "fd1df42e-8d03-5e72-bfdc-c569eaa609b6",
+      "first_name": "Elisabeth",
+      "middle_name": "",
+      "last_name": "Meier",
+      "birth_name": "",
+      "gender": "female",
+      "birth_date": "1932",
+      "birth_place": "Luzern",
+      "death_date": "2010",
+      "death_place": "Luzern",
+      "parents": [
+        "96896dde-d0f1-5549-8a50-bede3565fe16",
+        "639e5bb5-031f-5f35-9e9c-6495b27a0e34"
+      ],
+      "partnerships": [
+        {
+          "partner": "24aacbc2-573d-5222-bfd2-3f3174d72c3e",
+          "type": "marriage",
+          "status": "divorced",
+          "from": "1952",
+          "to": "1963"
+        }
+      ],
+      "notes": "Took back her maiden name after the divorce."
+    },
+    {
+      "id": "96896dde-d0f1-5549-8a50-bede3565fe16",
+      "first_name": "Josef",
+      "middle_name": "",
+      "last_name": "Meier",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1898",
+      "birth_place": "Luzern",
+      "death_date": "1944",
+      "death_place": "",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "639e5bb5-031f-5f35-9e9c-6495b27a0e34",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1925",
+          "to": "1944"
+        }
+      ],
+      "notes": "Exact date of death unknown."
+    },
+    {
+      "id": "639e5bb5-031f-5f35-9e9c-6495b27a0e34",
+      "first_name": "Rosa",
+      "middle_name": "",
+      "last_name": "Meier",
+      "birth_name": "Huber",
+      "gender": "female",
+      "birth_date": "03.05.1901",
+      "birth_place": "Kriens",
+      "death_date": "1988",
+      "death_place": "Luzern",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "96896dde-d0f1-5549-8a50-bede3565fe16",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1925",
+          "to": "1944"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "b04bd6c4-e4f4-5a0f-80db-f70ba151878d",
+      "first_name": "Claudia",
+      "middle_name": "",
+      "last_name": "Roth",
+      "birth_name": "",
+      "gender": "female",
+      "birth_date": "about 1961",
+      "birth_place": "",
+      "death_date": "",
+      "death_place": "",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "e8252fa3-8209-5133-80a6-f8b96d210737",
+          "type": "partnership",
+          "status": "separated",
+          "from": "1988",
+          "to": "1994"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "e8252fa3-8209-5133-80a6-f8b96d210737",
+      "first_name": "Daniel",
+      "middle_name": "",
+      "last_name": "Schmid",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1958",
+      "birth_place": "Basel",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "18d71127-6450-51b9-8acb-977cc842bbc5",
+        "ef95aa54-b838-5b55-a1cc-8069961eeaf8"
+      ],
+      "partnerships": [
+        {
+          "partner": "b04bd6c4-e4f4-5a0f-80db-f70ba151878d",
+          "type": "partnership",
+          "status": "separated",
+          "from": "1988",
+          "to": "1994"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "84bcf216-8a7e-549b-9e66-e123b08f5d8d",
+      "first_name": "Lea",
+      "middle_name": "",
+      "last_name": "Schmid",
+      "birth_name": "",
+      "gender": "female",
+      "birth_date": "1990",
+      "birth_place": "Basel",
+      "death_date": "",
+      "death_place": "",
+      "parents": [
+        "e8252fa3-8209-5133-80a6-f8b96d210737",
+        "b04bd6c4-e4f4-5a0f-80db-f70ba151878d"
+      ],
+      "partnerships": [],
+      "notes": ""
+    },
+    {
+      "id": "18d71127-6450-51b9-8acb-977cc842bbc5",
+      "first_name": "Margrit",
+      "middle_name": "",
+      "last_name": "Schmid",
+      "birth_name": "Keller",
+      "gender": "female",
+      "birth_date": "1931",
+      "birth_place": "Zürich",
+      "death_date": "2015",
+      "death_place": "Basel",
+      "parents": [
+        "7cb3c9fd-5110-58e0-8abe-b402c6fffc7d",
+        "0054c9d9-970c-5ca9-9cd5-0f366abf9693"
+      ],
+      "partnerships": [
+        {
+          "partner": "ef95aa54-b838-5b55-a1cc-8069961eeaf8",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1955",
+          "to": "2001"
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "ef95aa54-b838-5b55-a1cc-8069961eeaf8",
+      "first_name": "Peter",
+      "middle_name": "",
+      "last_name": "Schmid",
+      "birth_name": "",
+      "gender": "male",
+      "birth_date": "1929",
+      "birth_place": "Basel",
+      "death_date": "2001",
+      "death_place": "Basel",
+      "parents": [],
+      "partnerships": [
+        {
+          "partner": "18d71127-6450-51b9-8acb-977cc842bbc5",
+          "type": "marriage",
+          "status": "widowed",
+          "from": "1955",
+          "to": "2001"
+        }
+      ],
+      "notes": ""
+    }
+  ]
+}
