@@ -3,7 +3,7 @@
 import os
 import sys
 
-from PySide6.QtCore import QCoreApplication, QSettings, QSize, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QSettings, QSize, Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
@@ -329,6 +329,15 @@ class MainWindow(QMainWindow):
         self.update_title()
         self.statusBar().showMessage(f"Saved {path}", 4000)
         return True
+
+    def changeEvent(self, event):
+        # Redraw the drawn icons when Windows switches between light and dark mode.
+        if hasattr(self, "ai_button") and event.type() in (
+                QEvent.PaletteChange, QEvent.ThemeChange, QEvent.ApplicationPaletteChange):
+            self._update_ai_button()
+            if self.ai_dialog is not None:
+                self.ai_dialog.setWindowIcon(robot_icon())
+        super().changeEvent(event)
 
     def closeEvent(self, event):
         if self.maybe_save():
