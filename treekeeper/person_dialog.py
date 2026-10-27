@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from .date_edit import DateEdit
-from .model import GENDERS, PARTNERSHIP_STATUSES, PARTNERSHIP_TYPES, Partnership
+from .model import GENDERS, PARTNERSHIP_STATUSES, PARTNERSHIP_TYPES, Partnership, father_and_mother
 
 NONE_LABEL = "— none —"
 
@@ -57,27 +57,6 @@ class PersonPicker(QComboBox):
         if index < 0:
             raise ValueError(f"No person named “{text}”.")
         return self.itemData(index)
-
-
-def father_and_mother(tree, parent_ids):
-    """Split stored parents into (father, mother) by gender; others fill the free slot."""
-    father = mother = None
-    rest = []
-    for pid in parent_ids:
-        person = tree.get(pid)
-        gender = person.gender if person else "unknown"
-        if gender == "male" and father is None:
-            father = pid
-        elif gender == "female" and mother is None:
-            mother = pid
-        else:
-            rest.append(pid)
-    for pid in rest:
-        if father is None:
-            father = pid
-        elif mother is None:
-            mother = pid
-    return father, mother
 
 
 def _combo(values, current):

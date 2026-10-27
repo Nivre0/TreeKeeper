@@ -95,9 +95,45 @@ class PersonCard(QGraphicsItem):
             y += h
 
 
+class PlaceholderCard(QGraphicsItem):
+    """Dashed card for a missing father or mother of the focus person; click to add one."""
+
+    def __init__(self, role):
+        super().__init__()
+        self.role = role
+        self.hover = False
+        self.setAcceptHoverEvents(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip(f"Click to add the {role} of this person")
+
+    def boundingRect(self):
+        return QRectF(-lay.CARD_W / 2 - 2, -lay.CARD_H / 2 - 2, lay.CARD_W + 4, lay.CARD_H + 4)
+
+    def hoverEnterEvent(self, event):
+        self.hover = True
+        self.update()
+
+    def hoverLeaveEvent(self, event):
+        self.hover = False
+        self.update()
+
+    def paint(self, painter, option, widget=None):
+        rect = QRectF(-lay.CARD_W / 2, -lay.CARD_H / 2, lay.CARD_W, lay.CARD_H)
+        color = GENDER_COLORS["male" if self.role == "father" else "female"]
+        painter.setPen(QPen(QColor("#6f7a85") if self.hover else FORMER_COLOR, 1.5, Qt.DashLine))
+        painter.setBrush(QBrush(color if self.hover else QColor(255, 255, 255, 0)))
+        painter.drawRoundedRect(rect, 8, 8)
+        font = QFont(painter.font())
+        font.setPointSizeF(9.5)
+        painter.setFont(font)
+        painter.setPen(QColor("#5f6973"))
+        painter.drawText(rect, Qt.AlignCenter, f"+ Add {self.role}")
+
+
 class TreeView(QGraphicsView):
     personClicked = Signal(str)
     personActivated = Signal(str)
+    addParentRequested = Signal(str)   # "father" or "mother" of the focus person
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -129,10 +165,30 @@ class TreeView(QGraphicsView):
             card.setZValue(2)
             scene.addItem(card)
             self.cards[pid] = card
+        self._draw_placeholders(layout.placeholders, pos.get(focus_id))
         rect = scene.itemsBoundingRect().adjusted(-400, -300, 400, 300)
         scene.setSceneRect(rect)
         if recenter and focus_id in self.cards:
             self.centerOn(self.cards[focus_id])
+
+    def _draw_placeholders(self, placeholders, focus_pos):
+        """'Add father/mother' cards with a dashed line down to the focus person."""
+        if not focus_pos:
+            return
+        fx, fy = focus_pos
+        half_h = lay.CARD_H / 2
+        pen = QPen(FORMER_COLOR, 1.3, Qt.DashLine)
+        for role, (x, y) in placeholders.items():
+            mid = (y + half_h + fy - half_h) / 2
+            path = QPainterPath(QPointF(x, y + half_h))
+            path.lineTo(x, mid)
+            path.lineTo(fx, mid)
+            path.lineTo(fx, fy - half_h)
+            self.scene().addPath(path, pen).setZValue(0)
+            card = PlaceholderCard(role)
+            card.setPos(x, y)
+            card.setZValue(2)
+            self.scene().addItem(card)
 
     def _draw_couples(self, tree, pos):
         half_w = lay.CARD_W / 2
@@ -257,6 +313,11 @@ class TreeView(QGraphicsView):
             return
         moved = (event.position() - self._press_pos).manhattanLength()
         self._press_pos = None
+        placeholder = next((i for i in self.items(event.position().toPoint()) if isinstance(i, PlaceholderCard)), None)
+        if placeholder and moved < 5:
+            # Open the dialog after this event has finished, not inside the mouse handler.
+            QTimer.singleShot(0, lambda role=placeholder.role: self.addParentRequested.emit(role))
+            return
         card = self._card_at(event.position().toPoint())
         if card and moved < 5:
             # Delay so a double-click does not first re-layout the tree.

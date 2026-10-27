@@ -167,6 +167,27 @@ class Person:
         )
 
 
+def father_and_mother(tree, parent_ids):
+    """Split stored parents into (father, mother) by gender; others fill the free slot."""
+    father = mother = None
+    rest = []
+    for pid in parent_ids:
+        person = tree.get(pid)
+        gender = person.gender if person else "unknown"
+        if gender == "male" and father is None:
+            father = pid
+        elif gender == "female" and mother is None:
+            mother = pid
+        else:
+            rest.append(pid)
+    for pid in rest:
+        if father is None:
+            father = pid
+        elif mother is None:
+            mother = pid
+    return father, mother
+
+
 class TreeKeeper:
     """All persons of one file plus the operations that keep references consistent."""
 
