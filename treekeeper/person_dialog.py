@@ -14,9 +14,13 @@ NONE_LABEL = "— none —"
 
 
 class PersonPicker(QComboBox):
-    """Editable combo box listing all persons; type to search by name."""
+    """Editable combo box listing all persons; type to search by name.
 
-    def __init__(self, tree, exclude_id=None, parent=None):
+    exclude_gender hides persons of that gender (e.g. women in the father
+    picker), except keep_id, the person currently selected.
+    """
+
+    def __init__(self, tree, exclude_id=None, exclude_gender=None, keep_id=None, parent=None):
         super().__init__(parent)
         self.setEditable(True)
         self.setInsertPolicy(QComboBox.NoInsert)
@@ -25,6 +29,8 @@ class PersonPicker(QComboBox):
         labels = {}
         for person in tree.sorted_persons():
             if person.id == exclude_id:
+                continue
+            if person.gender == exclude_gender and person.id != keep_id:
                 continue
             label = person.list_label
             if label in labels:  # keep labels unique so typed text maps to one person
@@ -51,6 +57,27 @@ class PersonPicker(QComboBox):
         if index < 0:
             raise ValueError(f"No person named “{text}”.")
         return self.itemData(index)
+
+
+def father_and_mother(tree, parent_ids):
+    """Split stored parents into (father, mother) by gender; others fill the free slot."""
+    father = mother = None
+    rest = []
+    for pid in parent_ids:
+        person = tree.get(pid)
+        gender = person.gender if person else "unknown"
+        if gender == "male" and father is None:
+            father = pid
+        elif gender == "female" and mother is None:
+            mother = pid
+        else:
+            rest.append(pid)
+    for pid in rest:
+        if father is None:
+            father = pid
+        elif mother is None:
+            mother = pid
+    return father, mother
 
 
 def _combo(values, current):
@@ -201,11 +228,12 @@ class PersonDialog(QDialog):
         parents_box = QGroupBox("Parents")
         parents_form = QFormLayout(parents_box)
         self.parent_pickers = []
-        for i in range(2):
-            picker = PersonPicker(tree, exclude_id=p.id)
-            picker.set_person(p.parents[i] if i < len(p.parents) else None)
+        father, mother = father_and_mother(tree, p.parents)
+        for label, current, hidden_gender in (("Father:", father, "female"), ("Mother:", mother, "male")):
+            picker = PersonPicker(tree, exclude_id=p.id, exclude_gender=hidden_gender, keep_id=current)
+            picker.set_person(current)
             self.parent_pickers.append(picker)
-            parents_form.addRow(f"Parent {i + 1}:", picker)
+            parents_form.addRow(label, picker)
 
         partners_box = QGroupBox("Partners")
         partners_layout = QVBoxLayout(partners_box)

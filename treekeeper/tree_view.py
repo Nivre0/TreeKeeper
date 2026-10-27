@@ -1,5 +1,7 @@
 """Graphical tree: person cards and connecting lines in a zoomable QGraphicsView."""
 
+import time
+
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsScene, QGraphicsView
@@ -74,9 +76,17 @@ class PersonCard(QGraphicsItem):
         if span:
             lines.append((span, small_font, QColor("#4a525a")))
 
+        if p.deceased:
+            cross_font = QFont(painter.font())
+            cross_font.setPointSizeF(11)
+            cross_font.setBold(True)
+            painter.setFont(cross_font)
+            painter.setPen(QColor("#4a525a"))
+            painter.drawText(QRectF(lay.CARD_W / 2 - 20, -lay.CARD_H / 2 + 2, 16, 20), Qt.AlignCenter, "†")
+
         heights = [QFontMetrics(f).height() for _, f, _ in lines]
         y = -sum(heights) / 2
-        inner = lay.CARD_W - 16
+        inner = lay.CARD_W - (40 if p.deceased else 16)  # keep text clear of the † symbol
         for (text, font, color), h in zip(lines, heights):
             painter.setFont(font)
             painter.setPen(color)
@@ -99,6 +109,7 @@ class TreeView(QGraphicsView):
         self.cards = {}
         self._press_pos = None
         self._pending_click = None
+        self._last_click = (None, 0.0)   # (person id, time) of the last single click on a card
         self._click_timer = QTimer(self)
         self._click_timer.setSingleShot(True)
         self._click_timer.timeout.connect(self._emit_click)
@@ -250,14 +261,21 @@ class TreeView(QGraphicsView):
         if card and moved < 5:
             # Delay so a double-click does not first re-layout the tree.
             self._pending_click = card.person_id
+            self._last_click = (card.person_id, time.monotonic())
             self._click_timer.start(QApplication.doubleClickInterval())
 
     def mouseDoubleClickEvent(self, event):
-        card = self._card_at(event.position().toPoint())
-        if card:
+        # Prefer the card hit by the first click: if the focus change already
+        # re-laid out the tree, the cursor may now be over another card or none.
+        pid, clicked_at = self._last_click
+        if pid is None or time.monotonic() - clicked_at > 2 * QApplication.doubleClickInterval() / 1000:
+            card = self._card_at(event.position().toPoint())
+            pid = card.person_id if card else None
+        self._last_click = (None, 0.0)
+        if pid:
             self._click_timer.stop()
             self._pending_click = None
-            self.personActivated.emit(card.person_id)
+            self.personActivated.emit(pid)
         else:
             super().mouseDoubleClickEvent(event)
 

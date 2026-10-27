@@ -40,14 +40,17 @@ def year_label(text):
 
 
 def lifespan(birth, death, deceased):
-    """Lifespan like '1923–1998', '1950–' (living), '?–1998', '†' or ''."""
+    """Lifespan like '1923–1998', '?–1998', 'born 1950' (living) or '' if no years are known.
+
+    Whether a person has died is shown separately with a † symbol.
+    """
     born = year_label(birth)
     died = year_label(death)
     if deceased:
-        if not born and not died:
-            return "†"
+        if born in ("", "?") and died in ("", "?"):
+            return ""
         return f"{born or '?'}–{died or '?'}"
-    return f"{born}–" if born else ""
+    return f"born {born}" if born else ""
 
 
 def sort_year(text, default=9999):

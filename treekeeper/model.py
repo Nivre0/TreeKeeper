@@ -109,7 +109,9 @@ class Person:
         if self.birth_name.strip() and self.birth_name != self.last_name:
             name += f" (née {self.birth_name})"
         span = self.lifespan
-        return f"{name}  {span}" if span else name
+        if span:
+            name += f"  {span}"
+        return f"{name} †" if self.deceased else name
 
     def sort_key(self):
         return (self.last_name.lower(), self.first_name.lower(), dates.sort_year(self.birth_date))

@@ -26,10 +26,17 @@ class DatesTest(unittest.TestCase):
 
     def test_lifespan(self):
         self.assertEqual(dates.lifespan("1923", "1998", True), "1923–1998")
-        self.assertEqual(dates.lifespan("1950", "", False), "1950–")
+        self.assertEqual(dates.lifespan("1950", "", False), "born 1950")
         self.assertEqual(dates.lifespan("", "1998", True), "?–1998")
         self.assertEqual(dates.lifespan("ca. 1880", "?", True), "c. 1880–?")
+        self.assertEqual(dates.lifespan("", "?", True), "")
         self.assertEqual(dates.lifespan("", "", False), "")
+
+    def test_list_label_marks_deceased(self):
+        self.assertEqual(Person(first_name="A", last_name="B", birth_date="1950").list_label, "B, A  born 1950")
+        self.assertEqual(Person(first_name="A", last_name="B", birth_date="1900", death_date="1980").list_label,
+                         "B, A  1900–1980 †")
+        self.assertEqual(Person(first_name="A", last_name="B", death_date="?").list_label, "B, A †")
 
     def test_parse_date(self):
         self.assertEqual(dates.parse_date("12.03.1923"), ("", 12, 3, 1923))
@@ -54,12 +61,64 @@ class DatesTest(unittest.TestCase):
         self.assertIsNotNone(dates.date_error(None, 4, None))
 
 
-class DateEditTest(unittest.TestCase):
+class GuiTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
         cls.app = QApplication.instance() or QApplication([])
+
+
+class FatherMotherTest(GuiTestCase):
+    def test_slots_by_gender(self):
+        from treekeeper.person_dialog import PersonDialog, father_and_mother
+        tree = FamilyTreeFixture.make()
+        dad, mum, other, kid = (tree.get(k) for k in ("dad", "mum", "other", "kid"))
+        self.assertEqual(father_and_mother(tree, [mum.id, dad.id]), (dad.id, mum.id))
+        self.assertEqual(father_and_mother(tree, [other.id, mum.id]), (other.id, mum.id))
+        self.assertEqual(father_and_mother(tree, [mum.id]), (None, mum.id))
+        dialog = PersonDialog(tree, kid, "Edit")
+        father_picker, mother_picker = dialog.parent_pickers
+        self.assertEqual((father_picker.person_id(), mother_picker.person_id()), (dad.id, mum.id))
+        self.assertEqual(father_picker.findData(mum.id), -1)    # women are not offered as father
+        self.assertEqual(mother_picker.findData(dad.id), -1)
+        self.assertGreaterEqual(father_picker.findData(other.id), 0)
+
+
+class FamilyTreeFixture:
+    @staticmethod
+    def make():
+        tree = TreeKeeper()
+        for key, gender in (("dad", "male"), ("mum", "female"), ("other", "unknown")):
+            tree.add_person(Person(id=key, first_name=key, gender=gender))
+        tree.add_person(Person(id="kid", first_name="kid", parents=["mum", "dad"]))
+        return tree
+
+
+class TreeDoubleClickTest(GuiTestCase):
+    def test_double_click_after_relayout_edits_first_card(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+        from treekeeper.main_window import MainWindow
+        window = MainWindow()
+        window.resize(1200, 800)
+        window._set_tree(TreeKeeper.load(SAMPLE))
+        window.show()
+        edited = []
+        window.view.personActivated.disconnect()
+        window.view.personActivated.connect(edited.append)
+        target = next(pid for pid in window.view.cards if pid != window.focus_id)
+        point = window.view.mapFromScene(window.view.cards[target].scenePos())
+        QTest.mouseClick(window.view.viewport(), Qt.LeftButton, pos=point)
+        window.view._emit_click()       # focus change: the tree is re-laid out and re-centred
+        self.assertEqual(window.focus_id, target)
+        QTest.mouseDClick(window.view.viewport(), Qt.LeftButton, pos=point)
+        self.assertEqual(edited, [target])
+        window.tree.dirty = False
+        window.close()
+
+
+class DateEditTest(GuiTestCase):
 
     def make(self, text):
         from treekeeper.date_edit import DateEdit
