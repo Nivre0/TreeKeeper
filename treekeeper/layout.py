@@ -17,6 +17,7 @@ import sys
 from dataclasses import dataclass, field
 
 from . import dates
+from .model import father_and_mother
 
 CARD_W = 180
 CARD_H = 64
@@ -38,6 +39,42 @@ class Layout:
     positions: dict = field(default_factory=dict)   # person id -> (x, y) card centre
     units: list = field(default_factory=list)
     engine: str = ""
+    placeholders: dict = field(default_factory=dict)  # "father"/"mother" -> (x, y): missing parents of the focus
+
+
+def add_parent_placeholders(tree, layout, focus_id):
+    """Reserve a free spot above the focus person for each missing father/mother card."""
+    focus = tree.get(focus_id)
+    father, mother = father_and_mother(tree, focus.parents)
+    missing = [role for role, pid in (("father", father), ("mother", mother)) if pid is None]
+    if not missing:
+        return layout
+    fx, fy = layout.positions[focus_id]
+    y = fy - ROW_H
+    taken = [x for x, yy in layout.positions.values() if abs(yy - y) < CARD_H]
+    step = CARD_W + COUPLE_GAP
+    if len(missing) == 2:
+        offsets, start = (-step / 2, step / 2), fx
+    else:
+        present = father or mother
+        offsets = (0,)
+        if present in layout.positions and abs(layout.positions[present][1] - y) < 1:
+            px = layout.positions[present][0]
+            start = px + step if missing[0] == "mother" else px - step
+        else:
+            start = fx
+
+    def free(cx):
+        return all(abs(cx + off - x) >= CARD_W + COUPLE_GAP for off in offsets for x in taken)
+
+    # Nearest free position, searching outwards from the preferred one.
+    for shift in range(0, 60):
+        for cx in ((start + shift * step, start - shift * step) if shift else (start,)):
+            if free(cx):
+                for role, off in zip(missing, offsets):
+                    layout.placeholders[role] = (cx + off, y)
+                return layout
+    return layout
 
 
 def family_units(tree, shown):
@@ -109,7 +146,7 @@ def layout_direct(tree, focus_id):
 
     place_ancestors(focus_id, 0, 0, set())
     place_descendants(focus_id, 0, 0, {p for p in pos if p != focus_id})
-    return Layout(pos, family_units(tree, set(pos)), "generations")
+    return add_parent_placeholders(tree, Layout(pos, family_units(tree, set(pos)), "generations"), focus_id)
 
 
 # --- Mode 2: everyone connected to the focus person ----------------------------------
@@ -228,12 +265,15 @@ def find_dot():
 def layout_all(tree, focus_id, use_graphviz=True):
     shown = connected_relatives(tree, focus_id)
     dot = find_dot() if use_graphviz else None
+    result = None
     if dot:
         try:
-            return _layout_graphviz(tree, shown, dot)
+            result = _layout_graphviz(tree, shown, dot)
         except (OSError, subprocess.SubprocessError, ValueError):
             pass
-    return _layout_builtin(tree, shown, focus_id)
+    if result is None:
+        result = _layout_builtin(tree, shown, focus_id)
+    return add_parent_placeholders(tree, result, focus_id)
 
 
 def _dot_source(tree, shown, blocks):

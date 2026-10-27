@@ -109,7 +109,9 @@ class Person:
         if self.birth_name.strip() and self.birth_name != self.last_name:
             name += f" (née {self.birth_name})"
         span = self.lifespan
-        return f"{name}  {span}" if span else name
+        if span:
+            name += f"  {span}"
+        return f"{name} †" if self.deceased else name
 
     def sort_key(self):
         return (self.last_name.lower(), self.first_name.lower(), dates.sort_year(self.birth_date))
@@ -163,6 +165,27 @@ class Person:
                           if isinstance(p, dict)],
             notes=str(d.get("notes") or ""),
         )
+
+
+def father_and_mother(tree, parent_ids):
+    """Split stored parents into (father, mother) by gender; others fill the free slot."""
+    father = mother = None
+    rest = []
+    for pid in parent_ids:
+        person = tree.get(pid)
+        gender = person.gender if person else "unknown"
+        if gender == "male" and father is None:
+            father = pid
+        elif gender == "female" and mother is None:
+            mother = pid
+        else:
+            rest.append(pid)
+    for pid in rest:
+        if father is None:
+            father = pid
+        elif mother is None:
+            mother = pid
+    return father, mother
 
 
 class TreeKeeper:

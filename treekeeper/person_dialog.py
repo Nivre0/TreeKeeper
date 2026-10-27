@@ -8,15 +8,19 @@ from PySide6.QtWidgets import (
 )
 
 from .date_edit import DateEdit
-from .model import GENDERS, PARTNERSHIP_STATUSES, PARTNERSHIP_TYPES, Partnership
+from .model import GENDERS, PARTNERSHIP_STATUSES, PARTNERSHIP_TYPES, Partnership, father_and_mother
 
 NONE_LABEL = "— none —"
 
 
 class PersonPicker(QComboBox):
-    """Editable combo box listing all persons; type to search by name."""
+    """Editable combo box listing all persons; type to search by name.
 
-    def __init__(self, tree, exclude_id=None, parent=None):
+    exclude_gender hides persons of that gender (e.g. women in the father
+    picker), except keep_id, the person currently selected.
+    """
+
+    def __init__(self, tree, exclude_id=None, exclude_gender=None, keep_id=None, parent=None):
         super().__init__(parent)
         self.setEditable(True)
         self.setInsertPolicy(QComboBox.NoInsert)
@@ -25,6 +29,8 @@ class PersonPicker(QComboBox):
         labels = {}
         for person in tree.sorted_persons():
             if person.id == exclude_id:
+                continue
+            if person.gender == exclude_gender and person.id != keep_id:
                 continue
             label = person.list_label
             if label in labels:  # keep labels unique so typed text maps to one person
@@ -201,11 +207,12 @@ class PersonDialog(QDialog):
         parents_box = QGroupBox("Parents")
         parents_form = QFormLayout(parents_box)
         self.parent_pickers = []
-        for i in range(2):
-            picker = PersonPicker(tree, exclude_id=p.id)
-            picker.set_person(p.parents[i] if i < len(p.parents) else None)
+        father, mother = father_and_mother(tree, p.parents)
+        for label, current, hidden_gender in (("Father:", father, "female"), ("Mother:", mother, "male")):
+            picker = PersonPicker(tree, exclude_id=p.id, exclude_gender=hidden_gender, keep_id=current)
+            picker.set_person(current)
             self.parent_pickers.append(picker)
-            parents_form.addRow(f"Parent {i + 1}:", picker)
+            parents_form.addRow(label, picker)
 
         partners_box = QGroupBox("Partners")
         partners_layout = QVBoxLayout(partners_box)

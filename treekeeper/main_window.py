@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
         self.view = TreeView()
         self.view.personClicked.connect(self.set_focus)
         self.view.personActivated.connect(self.edit_person)
+        self.view.addParentRequested.connect(lambda role: self.add_parent(self.focus_id, role))
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(["Ancestors && descendants", "Whole family"])
         self.mode_combo.currentIndexChanged.connect(lambda: self.refresh_tree(recenter=True))
@@ -371,7 +372,8 @@ class MainWindow(QMainWindow):
         if person:
             self._commit(lambda: self.tree.add_person(person), focus=person.id)
 
-    def add_parent(self, pid):
+    def add_parent(self, pid, role=None):
+        """Create a new person and make them a parent of pid. role: None, "father" or "mother"."""
         child = self.tree.get(pid)
         if not child:
             return
@@ -380,11 +382,14 @@ class MainWindow(QMainWindow):
             return
         preset = Person()
         existing = self.tree.parents_of(pid)
-        if existing and existing[0].gender in ("male", "female"):
+        if role:
+            preset.gender = "male" if role == "father" else "female"
+        elif existing and existing[0].gender in ("male", "female"):
             preset.gender = "female" if existing[0].gender == "male" else "male"
         if not existing or preset.gender == "male":
             preset.last_name = child.last_name
-        person = self._run_dialog(preset, f"Add parent of {child.full_name}")
+        # Nothing is created unless the dialog is confirmed with OK.
+        person = self._run_dialog(preset, f"Add {role or 'parent'} of {child.full_name}")
         if person:
             def action():
                 self.tree.add_person(person)

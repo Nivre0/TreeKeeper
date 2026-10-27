@@ -26,10 +26,18 @@ class DatesTest(unittest.TestCase):
 
     def test_lifespan(self):
         self.assertEqual(dates.lifespan("1923", "1998", True), "1923–1998")
-        self.assertEqual(dates.lifespan("1950", "", False), "1950–")
-        self.assertEqual(dates.lifespan("", "1998", True), "?–1998")
+        self.assertEqual(dates.lifespan("1950", "", False), "born 1950")
+        self.assertEqual(dates.lifespan("", "1998", True), "died 1998")
+        self.assertEqual(dates.lifespan("?", "before 1900", True), "died bef. 1900")
         self.assertEqual(dates.lifespan("ca. 1880", "?", True), "c. 1880–?")
+        self.assertEqual(dates.lifespan("", "?", True), "")
         self.assertEqual(dates.lifespan("", "", False), "")
+
+    def test_list_label_marks_deceased(self):
+        self.assertEqual(Person(first_name="A", last_name="B", birth_date="1950").list_label, "B, A  born 1950")
+        self.assertEqual(Person(first_name="A", last_name="B", birth_date="1900", death_date="1980").list_label,
+                         "B, A  1900–1980 †")
+        self.assertEqual(Person(first_name="A", last_name="B", death_date="?").list_label, "B, A †")
 
     def test_parse_date(self):
         self.assertEqual(dates.parse_date("12.03.1923"), ("", 12, 3, 1923))
@@ -54,12 +62,149 @@ class DatesTest(unittest.TestCase):
         self.assertIsNotNone(dates.date_error(None, 4, None))
 
 
-class DateEditTest(unittest.TestCase):
+class GuiTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
         cls.app = QApplication.instance() or QApplication([])
+
+
+class FatherMotherTest(GuiTestCase):
+    def test_slots_by_gender(self):
+        from treekeeper.person_dialog import PersonDialog, father_and_mother
+        tree = FamilyTreeFixture.make()
+        dad, mum, other, kid = (tree.get(k) for k in ("dad", "mum", "other", "kid"))
+        self.assertEqual(father_and_mother(tree, [mum.id, dad.id]), (dad.id, mum.id))
+        self.assertEqual(father_and_mother(tree, [other.id, mum.id]), (other.id, mum.id))
+        self.assertEqual(father_and_mother(tree, [mum.id]), (None, mum.id))
+        dialog = PersonDialog(tree, kid, "Edit")
+        father_picker, mother_picker = dialog.parent_pickers
+        self.assertEqual((father_picker.person_id(), mother_picker.person_id()), (dad.id, mum.id))
+        self.assertEqual(father_picker.findData(mum.id), -1)    # women are not offered as father
+        self.assertEqual(mother_picker.findData(dad.id), -1)
+        self.assertGreaterEqual(father_picker.findData(other.id), 0)
+
+
+class FamilyTreeFixture:
+    @staticmethod
+    def make():
+        tree = TreeKeeper()
+        for key, gender in (("dad", "male"), ("mum", "female"), ("other", "unknown")):
+            tree.add_person(Person(id=key, first_name=key, gender=gender))
+        tree.add_person(Person(id="kid", first_name="kid", parents=["mum", "dad"]))
+        return tree
+
+
+class TreeDoubleClickTest(GuiTestCase):
+    def test_double_click_after_relayout_edits_first_card(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+        from treekeeper.main_window import MainWindow
+        window = MainWindow()
+        window.resize(1200, 800)
+        window._set_tree(TreeKeeper.load(SAMPLE))
+        window.show()
+        edited = []
+        window.view.personActivated.disconnect()
+        window.view.personActivated.connect(edited.append)
+        target = next(pid for pid in window.view.cards if pid != window.focus_id)
+        point = window.view.mapFromScene(window.view.cards[target].scenePos())
+        QTest.mouseClick(window.view.viewport(), Qt.LeftButton, pos=point)
+        window.view._emit_click()       # focus change: the tree is re-laid out and re-centred
+        self.assertEqual(window.focus_id, target)
+        QTest.mouseDClick(window.view.viewport(), Qt.LeftButton, pos=point)
+        self.assertEqual(edited, [target])
+        window.tree.dirty = False
+        window.close()
+
+
+class PlaceholderTest(GuiTestCase):
+    def setUp(self):
+        self.tree = TreeKeeper.load(SAMPLE)
+
+    def check(self, result, focus_id):
+        cards = list(result.positions.values()) + list(result.placeholders.values())
+        for i, (ax, ay) in enumerate(cards):
+            for bx, by in cards[i + 1:]:
+                self.assertFalse(abs(ax - bx) < layout.CARD_W and abs(ay - by) < layout.CARD_H, "overlap")
+        fy = result.positions[focus_id][1]
+        for x, y in result.placeholders.values():
+            self.assertEqual(y, fy - layout.ROW_H)
+
+    def test_placeholders_only_for_missing_parents(self):
+        for mode in (layout.layout_direct, lambda t, f: layout.layout_all(t, f, use_graphviz=False),
+                     layout.layout_all):
+            thomas, heinrich = by_name(self.tree, "Thomas"), by_name(self.tree, "Heinrich")
+            self.assertEqual(mode(self.tree, thomas.id).placeholders, {})
+            result = mode(self.tree, heinrich.id)
+            self.assertEqual(set(result.placeholders), {"father", "mother"})
+            self.assertLess(result.placeholders["father"][0], result.placeholders["mother"][0])
+            self.check(result, heinrich.id)
+
+    def test_missing_mother_next_to_father(self):
+        lukas = by_name(self.tree, "Lukas").copy()
+        lukas.parents = [by_name(self.tree, "Thomas").id]
+        self.tree.update_person(lukas)
+        step = layout.CARD_W + layout.COUPLE_GAP
+        thomas_id = by_name(self.tree, "Thomas").id
+        # Ancestors view: the father's row is free, so the mother goes right next to him.
+        result = layout.layout_direct(self.tree, lukas.id)
+        self.assertEqual(set(result.placeholders), {"mother"})
+        self.assertAlmostEqual(result.placeholders["mother"][0], result.positions[thomas_id][0] + step)
+        self.check(result, lukas.id)
+        # Whole family: Sandra sits right of Thomas, so the nearest free spot is used instead.
+        result = layout.layout_all(self.tree, lukas.id)
+        self.assertEqual(set(result.placeholders), {"mother"})
+        self.assertLessEqual(abs(result.placeholders["mother"][0] - result.positions[thomas_id][0]), 2 * step)
+        self.check(result, lukas.id)
+
+    def test_click_placeholder_creates_parent_only_on_ok(self):
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+        from treekeeper.main_window import MainWindow
+        from treekeeper.tree_view import PlaceholderCard
+        window = MainWindow()
+        window.resize(1200, 800)
+        window._set_tree(TreeKeeper.load(SAMPLE))
+        window.show()
+        heinrich = by_name(window.tree, "Heinrich")
+        window.set_focus(heinrich.id)
+        presets = []
+
+        def fake_dialog(answer):
+            def run(person, title):
+                presets.append((person.gender, title))
+                if answer == "ok":
+                    person = person.copy()
+                    person.first_name = "Karl"
+                    return person
+                return None
+            return run
+
+        def click_mother():
+            card = next(i for i in window.view.scene().items()
+                        if isinstance(i, PlaceholderCard) and i.role == "mother")
+            QTest.mouseClick(window.view.viewport(), Qt.LeftButton, pos=window.view.mapFromScene(card.scenePos()))
+            self.app.processEvents()
+
+        count = len(window.tree.persons)
+        window._run_dialog = fake_dialog("cancel")
+        click_mother()
+        self.assertEqual(presets, [("female", "Add mother of Heinrich Albert Keller")])
+        self.assertEqual(len(window.tree.persons), count)          # cancelled: nobody created
+        window._run_dialog = fake_dialog("ok")
+        click_mother()
+        self.assertEqual(len(window.tree.persons), count + 1)
+        new = next(p for p in window.tree.persons.values() if p.first_name == "Karl")
+        self.assertEqual(window.tree.get(heinrich.id).parents, [new.id])
+        self.assertEqual(window.focus_id, heinrich.id)
+        self.assertEqual(set(window.view.cards) >= {new.id}, True)
+        window.tree.dirty = False
+        window.close()
+
+
+class DateEditTest(GuiTestCase):
 
     def make(self, text):
         from treekeeper.date_edit import DateEdit
