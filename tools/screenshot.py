@@ -19,6 +19,7 @@ def main():
     out_dir = sys.argv[1]
     focus = sys.argv[2] if len(sys.argv) > 2 else "Thomas"
     app = QApplication(sys.argv)
+    app.setOrganizationName("TreeKeeper-tests")  # keep the user's settings untouched
     app.setStyle("Fusion")
     window = MainWindow()
     window.resize(1500, 900)

@@ -68,6 +68,7 @@ class GuiTestCase(unittest.TestCase):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PySide6.QtWidgets import QApplication
         cls.app = QApplication.instance() or QApplication([])
+        cls.app.setOrganizationName("TreeKeeper-tests")  # keep the user's settings untouched
 
 
 class FatherMotherTest(GuiTestCase):

@@ -10,6 +10,7 @@ from treekeeper.main_window import APP_NAME, MainWindow
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    app.setOrganizationName(APP_NAME)
     app.setStyle("Fusion")
     window = MainWindow(sys.argv[1] if len(sys.argv) > 1 else None)
     window.show()
