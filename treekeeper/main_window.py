@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         self.view.addParentRequested.connect(lambda role: self.add_parent(self.focus_id, role))
         self.view.addChildRequested.connect(lambda: self.add_child(self.focus_id, focus_child=False))
         self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["Ancestors && descendants", "Whole family"])
+        self.mode_combo.addItems(["Ancestors & descendants", "Whole family"])
         self.mode_combo.currentIndexChanged.connect(lambda: self.refresh_tree(recenter=True))
         self.focus_label = QLabel()
         self.engine_label = QLabel()
