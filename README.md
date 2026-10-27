@@ -81,10 +81,14 @@ shortcut and building a standalone `.exe`.
 ## Development
 
 ```powershell
-.venv\Scripts\python -m unittest discover -s tests       # run the tests
-.venv\Scripts\python tools\make_sample.py                # regenerate the sample family
-.venv\Scripts\python tools\docs_screenshots.py           # retake the screenshots in docs/images
-.\build.ps1                                              # build dist\TreeKeeper\TreeKeeper.exe
+# Run the tests
+.venv\Scripts\python -m unittest discover -s tests
+# Regenerate the sample family
+.venv\Scripts\python tools\make_sample.py
+# Retake the screenshots in docs/images
+.venv\Scripts\python tools\docs_screenshots.py
+# Build dist\TreeKeeper\TreeKeeper.exe
+.\build.ps1
 ```
 
 The code lives in [`treekeeper/`](treekeeper):
