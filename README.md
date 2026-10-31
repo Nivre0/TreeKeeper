@@ -11,6 +11,9 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/UI-PySide6%20(Qt%206)-41CD52" alt="PySide6">
   <img src="https://img.shields.io/badge/AI%20access-MCP-8A63D2" alt="MCP server">
+  <a href="https://m8ven.ai/mcp/nivre0-treekeeper-fwmbqb?s=readme">
+    <img src="https://m8ven.ai/badge/mcp/nivre0-treekeeper-fwmbqb?v=9bd7ab62ab89305f9814448e9574e934" alt="M8ven Score">
+  </a>
 </p>
 
 <p align="center">
